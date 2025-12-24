@@ -5,6 +5,7 @@ import React, {
   useRef,
   useCallback,
   useMemo,
+  useEffect,
   FormEvent,
   Fragment,
 } from "react";
@@ -23,6 +24,7 @@ import type {
   ToolCall,
   ActionRequest,
   ReviewConfig,
+  QuestionsInterruptData,
 } from "@/app/types/types";
 import { Assistant, Message } from "@langchain/langgraph-sdk";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
@@ -30,6 +32,8 @@ import { useChatContext } from "@/providers/ChatProvider";
 import { cn } from "@/lib/utils";
 import { useStickToBottom } from "use-stick-to-bottom";
 import { FilesPopover } from "@/app/components/TasksFilesSidebar";
+import { QuestionsPanel } from "@/app/components/QuestionsPanel";
+import { useQuestions } from "@/app/hooks/useQuestions";
 
 interface ChatInterfaceProps {
   assistant: Assistant | null;
@@ -85,6 +89,51 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   } = useChatContext();
 
   const submitDisabled = isLoading || !assistant;
+
+  // Questions handling
+  const {
+    questions,
+    pendingQuestions,
+    addQuestionsFromInterrupt,
+    answerQuestion,
+    skipQuestion,
+  } = useQuestions({
+    onResumeWithAnswers: (answers) => {
+      // Resume the agent with the answers
+      resumeInterrupt({ answers, type: "questions_answered" });
+    },
+  });
+
+  // Check if the interrupt contains questions
+  const questionsInInterrupt = useMemo(() => {
+    if (!interrupt?.value) return null;
+    const value = interrupt.value as any;
+    if (value.questions && Array.isArray(value.questions)) {
+      return value as QuestionsInterruptData;
+    }
+    return null;
+  }, [interrupt]);
+
+  // Add questions from interrupt when detected
+  useEffect(() => {
+    if (questionsInInterrupt) {
+      addQuestionsFromInterrupt(questionsInInterrupt);
+    }
+  }, [questionsInInterrupt, addQuestionsFromInterrupt]);
+
+  const handleAnswerQuestion = useCallback(
+    (questionId: string, answer: string) => {
+      answerQuestion(questionId, answer);
+    },
+    [answerQuestion]
+  );
+
+  const handleSkipQuestion = useCallback(
+    (questionId: string) => {
+      skipQuestion(questionId);
+    },
+    [skipQuestion]
+  );
 
   const handleSubmit = useCallback(
     (e?: FormEvent) => {
@@ -287,6 +336,21 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       </div>
 
       <div className="flex-shrink-0 bg-background">
+        {/* Questions Panel - shown when agent has pending questions */}
+        {pendingQuestions.length > 0 && (
+          <div className="mx-auto mb-4 w-[calc(100%-32px)] max-w-[1024px] px-4">
+            <QuestionsPanel
+              questions={questions}
+              onAnswer={handleAnswerQuestion}
+              onSkip={handleSkipQuestion}
+              onOpenDashboard={() => {
+                // TODO: Navigate to questions dashboard when implemented
+                console.log("Open questions dashboard");
+              }}
+            />
+          </div>
+        )}
+
         <div
           className={cn(
             "mx-4 mb-6 flex flex-shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background",

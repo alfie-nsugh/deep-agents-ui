@@ -9,8 +9,8 @@
 ```bash
 $ git clone https://github.com/langchain-ai/deep-agents-ui.git
 $ cd deep-agents-ui
-$ yarn install
-$ yarn dev
+$ npm install
+$ npm run dev
 ```
 
 **Deploy a deepagent**

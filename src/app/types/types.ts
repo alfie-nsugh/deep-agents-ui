@@ -55,3 +55,50 @@ export interface ToolApprovalInterruptData {
   action_requests: ActionRequest[];
   review_configs?: ReviewConfig[];
 }
+
+// ============================================
+// Question Types for HITL Questions Panel
+// ============================================
+
+export type QuestionPriority = "blocking" | "high" | "medium" | "nice_to_have";
+
+export type QuestionStatus = "pending" | "answered" | "skipped";
+
+export interface QuestionContext {
+  file?: string;
+  lineNumber?: number;
+  branch?: string;
+  skillLabels?: string[];
+  sessionId?: string;
+  stepIndex?: number;
+}
+
+export interface QuestionOption {
+  id: string;
+  label: string;
+  description?: string;
+}
+
+export interface Question {
+  id: string;
+  text: string;
+  priority: QuestionPriority;
+  confidence: number; // 0.0 to 1.0
+  status: QuestionStatus;
+  context: QuestionContext;
+  options?: QuestionOption[]; // For multiple choice questions
+  answer?: string;
+  answeredAt?: Date;
+  createdAt: Date;
+  subject?: string; // Auto-detected or agent-provided grouping
+}
+
+export interface QuestionGroup {
+  subject: string;
+  questions: Question[];
+  count: number;
+}
+
+export interface QuestionsInterruptData {
+  questions: Question[];
+}
