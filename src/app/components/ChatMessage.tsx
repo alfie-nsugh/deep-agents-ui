@@ -16,6 +16,7 @@ import {
   extractStringFromMessageContent,
 } from "@/app/utils/utils";
 import { cn } from "@/lib/utils";
+import { ToolApprovalInterrupt } from "@/app/components/ToolApprovalInterrupt";
 
 interface ChatMessageProps {
   message: Message;
@@ -163,6 +164,17 @@ export const ChatMessage = React.memo<ChatMessageProps>(
                       />
                     </div>
                   </div>
+                  {/* Show permission request if this subagent (task tool call) has one */}
+                  {actionRequestsMap?.get(subAgent.name) && onResumeInterrupt && (
+                    <div className="mt-2 w-full max-w-full">
+                      <ToolApprovalInterrupt
+                        actionRequest={actionRequestsMap.get(subAgent.name)!}
+                        reviewConfig={reviewConfigsMap?.get(subAgent.name)}
+                        onResume={onResumeInterrupt}
+                        isLoading={isLoading}
+                      />
+                    </div>
+                  )}
                   {isSubAgentExpanded(subAgent.id) && (
                     <div className="w-full max-w-full">
                       <div className="bg-surface border-border-light rounded-md border p-4">
