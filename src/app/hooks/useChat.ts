@@ -50,6 +50,20 @@ export function useChat({
     onError: onHistoryRevalidate,
     onCreated: onHistoryRevalidate,
     thread: thread,
+    // Debug logging for subagent streaming
+    onUpdateEvent: (data, options) => {
+      if (options.namespace && options.namespace.length > 0) {
+        console.log("[SUBAGENT UPDATE]", { namespace: options.namespace, data });
+      }
+    },
+    onDebugEvent: (data, options) => {
+      if (options.namespace && options.namespace.length > 0) {
+        console.log("[SUBAGENT DEBUG]", { namespace: options.namespace, data });
+      }
+    },
+    onCustomEvent: (data, options) => {
+      console.log("[CUSTOM EVENT]", { namespace: options.namespace, data });
+    },
   });
 
   const sendMessage = useCallback(
@@ -62,6 +76,7 @@ export function useChat({
             messages: [...(prev.messages ?? []), newMessage],
           }),
           config: { ...(activeAssistant?.config ?? {}), recursion_limit: 100 },
+          streamSubgraphs: true,
         }
       );
       // Update thread list immediately when sending a message
@@ -84,6 +99,7 @@ export function useChat({
             : {}),
           config: activeAssistant?.config,
           checkpoint: checkpoint,
+          streamSubgraphs: true,
           ...(isRerunningSubagent
             ? { interruptAfter: ["tools"] }
             : { interruptBefore: ["tools"] }),
@@ -91,7 +107,7 @@ export function useChat({
       } else {
         stream.submit(
           { messages },
-          { config: activeAssistant?.config, interruptBefore: ["tools"] }
+          { config: activeAssistant?.config, interruptBefore: ["tools"], streamSubgraphs: true }
         );
       }
     },
@@ -115,6 +131,7 @@ export function useChat({
           ...(activeAssistant?.config || {}),
           recursion_limit: 100,
         },
+        streamSubgraphs: true,
         ...(hasTaskToolCall
           ? { interruptAfter: ["tools"] }
           : { interruptBefore: ["tools"] }),
@@ -133,7 +150,7 @@ export function useChat({
 
   const resumeInterrupt = useCallback(
     (value: any) => {
-      stream.submit(null, { command: { resume: value } });
+      stream.submit(null, { command: { resume: value }, streamSubgraphs: true });
       // Update thread list when resuming from interrupt
       onHistoryRevalidate?.();
     },
