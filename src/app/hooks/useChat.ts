@@ -102,23 +102,8 @@ export function useChat({
               const msgWithId = { ...msg, id: msgId };
               existing.push(msgWithId);
             }
-
-            console.log("[SUBAGENT] Tracked message:", {
-              toolCallId,
-              messageId: msgId,
-              type: msg.type,
-              hasContent: !!msg.content,
-              hasToolCallId: !!msg.tool_call_id, // This is for tool result messages
-              toolCallIdValue: msg.tool_call_id,
-            });
           });
         }
-        console.log("[SUBAGENT UPDATE]", {
-          namespace: options.namespace,
-          toolCallId,
-          messageCount: subagentMessages.current.get(toolCallId)?.length || 0,
-          messageTypes: subagentMessages.current.get(toolCallId)?.map((m: any) => m.type) || [],
-        });
       }
     },
     onDebugEvent: (data, options) => {
@@ -128,18 +113,6 @@ export function useChat({
         const toolCallId = toolCallIdMatch ? toolCallIdMatch[1] : namespaceStr;
 
         const debugData = data as Record<string, any>;
-
-        // Log all debug events to understand the structure
-        console.log("[SUBAGENT DEBUG EVENT]", {
-          type: debugData.type,
-          namespace: options.namespace,
-          payloadType: debugData.payload?.type,
-          hasMessages: !!debugData.payload?.messages,
-          hasContent: !!debugData.payload?.content,
-          keys: Object.keys(debugData.payload || {}),
-          fullPayload: debugData.payload, // Log full payload
-          result: debugData.payload?.result, // Check for result field directly
-        });
 
         // Try to capture messages from various locations in the payload
         // Messages can be at payload.messages, payload.input.messages, or payload directly
@@ -160,7 +133,6 @@ export function useChat({
               const existing = subagentMessages.current.get(toolCallId)!;
               if (!existing.find((m: any) => m.id === msgId)) {
                 existing.push({ ...msg, id: msgId });
-                console.log("[SUBAGENT DEBUG] Captured message:", { type: msg.type, name: msg.name, id: msgId });
               }
             });
           }
@@ -178,7 +150,6 @@ export function useChat({
           const existing = subagentMessages.current.get(toolCallId)!;
           if (!existing.find((m: any) => m.id === msgId)) {
             existing.push({ ...msg, id: msgId });
-            console.log("[SUBAGENT DEBUG] Captured tool message directly:", { id: msgId, toolCallId: msg.tool_call_id });
           }
         }
       }

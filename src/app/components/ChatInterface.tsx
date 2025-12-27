@@ -178,11 +178,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     // Get the current set of subagent message IDs
     const subagentIds = subagentMessageIds.current;
 
-    // Debug: Log what IDs we have to find the mismatch
-    console.log("[DEBUG] Subagent tracked IDs:", [...subagentIds]);
-    console.log("[DEBUG] Message IDs in stream:", messages.map((m: Message) => m.id));
-
-
     messages.forEach((message: Message) => {
       // Skip messages from subagents - check both:
       // 1. additional_kwargs.is_subagent (if preserved from backend)
@@ -192,11 +187,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       const isSubagentByTracking = message.id && subagentIds.has(message.id);
 
       if (isSubagentByKwargs || isSubagentByTracking) {
-        console.log("[DEBUG] Filtering subagent message:", {
-          id: message.id,
-          subagent_name: additionalKwargs?.subagent_name,
-          filteredBy: isSubagentByKwargs ? "additional_kwargs" : "tracked_id",
-        });
         return; // Skip subagent messages
       }
 

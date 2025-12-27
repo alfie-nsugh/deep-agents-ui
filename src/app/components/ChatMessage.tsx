@@ -239,10 +239,24 @@ export const ChatMessage = React.memo<ChatMessageProps>(
                             }
                           });
 
-                          // Also get text content from AI messages
+                          // Also get text content from AI messages (handle both string and array formats)
                           const aiTextContent = allSubagentMsgs
-                            .filter((msg: any) => msg.type === "ai" && msg.content && typeof msg.content === "string" && msg.content.trim())
-                            .map((msg: any) => msg.content.trim());
+                            .filter((msg: any) => msg.type === "ai" && msg.content)
+                            .map((msg: any) => {
+                              const content = msg.content;
+                              if (typeof content === "string") {
+                                return content.trim();
+                              } else if (Array.isArray(content)) {
+                                // Content can be array of text blocks
+                                return content
+                                  .map((item: any) => typeof item === "string" ? item : item.text || "")
+                                  .filter(Boolean)
+                                  .join("\n")
+                                  .trim();
+                              }
+                              return "";
+                            })
+                            .filter((text: string) => text.length > 0);
 
                           return (
                             <>
