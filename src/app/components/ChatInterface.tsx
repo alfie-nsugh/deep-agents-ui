@@ -86,6 +86,9 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     sendMessage,
     stopStream,
     resumeInterrupt,
+    getMessagesMetadata,
+    subagentMessageIds,
+    subagentMessages,
   } = useChatContext();
 
   const submitDisabled = isLoading || !assistant;
@@ -163,14 +166,40 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const processedMessages = useMemo(() => {
     /*
      1. Loop through all messages
-     2. For each AI message, add the AI message, and any tool calls to the messageMap
-     3. For each tool message, find the corresponding tool call in the messageMap and update the status and output
+     2. Filter out messages from subagents (using tracked IDs)
+     3. For each AI message, add the AI message, and any tool calls to the messageMap
+     4. For each tool message, find the corresponding tool call in the messageMap and update the status and output
     */
     const messageMap = new Map<
       string,
       { message: Message; toolCalls: ToolCall[] }
     >();
+
+    // Get the current set of subagent message IDs
+    const subagentIds = subagentMessageIds.current;
+
+    // Debug: Log what IDs we have to find the mismatch
+    console.log("[DEBUG] Subagent tracked IDs:", [...subagentIds]);
+    console.log("[DEBUG] Message IDs in stream:", messages.map((m: Message) => m.id));
+
+
     messages.forEach((message: Message) => {
+      // Skip messages from subagents - check both:
+      // 1. additional_kwargs.is_subagent (if preserved from backend)
+      // 2. tracked IDs from streaming events (as fallback)
+      const additionalKwargs = (message as any).additional_kwargs;
+      const isSubagentByKwargs = additionalKwargs?.is_subagent;
+      const isSubagentByTracking = message.id && subagentIds.has(message.id);
+
+      if (isSubagentByKwargs || isSubagentByTracking) {
+        console.log("[DEBUG] Filtering subagent message:", {
+          id: message.id,
+          subagent_name: additionalKwargs?.subagent_name,
+          filteredBy: isSubagentByKwargs ? "additional_kwargs" : "tracked_id",
+        });
+        return; // Skip subagent messages
+      }
+
       if (message.type === "ai") {
         const toolCallsInMessage: Array<{
           id?: string;
@@ -262,7 +291,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
         showAvatar: data.message.type !== prevMessage?.type,
       };
     });
-  }, [messages, interrupt]);
+  }, [messages, interrupt, subagentMessageIds]);
 
   const groupedTodos = {
     in_progress: todos.filter((t) => t.status === "in_progress"),
@@ -327,6 +356,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                     stream={stream}
                     onResumeInterrupt={resumeInterrupt}
                     graphId={assistant?.graph_id}
+                    subagentMessages={subagentMessages.current}
                   />
                 );
               })}
